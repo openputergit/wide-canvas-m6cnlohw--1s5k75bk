@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruitment Tracker</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-[Inter]">
+    <div id="app" v-cloak>
+        <!-- Login Screen -->
+        <div v-if="!isLoggedIn" class="min-h-screen flex items-center justify-center">
+            <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+                <h1 class="text-2xl font-bold mb-6 text-gray-800">Recruitment Tracker</h1>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" v-model="loginForm.email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" v-model="loginForm.password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                    </div>
+                    <button @click="login" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                        Login
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div v-else>
+            <!-- Navigation -->
+            <nav class="bg-white shadow-lg">
+                <div class="max-w-7xl mx-auto px-4">
+                    <div class="flex justify-between h-16">
+                        <div class="flex items-center">
+                            <span class="text-xl font-bold text-gray-800">Recruitment Tracker</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-gray-600">{{ currentUser.role }}</span>
+                            <button @click="logout" class="text-red-600 hover:text-red-800">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Content Area -->
+            <div class="max-w-7xl mx-auto px-4 py-6">
+                <!-- HR Dashboard -->
+                <div v-if="currentUser.role === 'HR'" class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-800">Job Descriptions</h2>
+                        <button @click="showNewCandidateModal = true" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                            Add Candidate
+                        </button>
+                    </div>
+                    
+                    <!-- Job Descriptions Table -->
+                    <div class="overflow-x-auto bg-white rounded-lg shadow">
+                        <table class="min-w-full table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Description</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">L0</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">L1</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">L2</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">L3</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">L4</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-for="job in jobs" :key="job.id">
+                                    <td class="px-6 py-4">{{ job.title }}</td>
+                                    <td class="px-6 py-4">{{ job.L0Count }}</td>
+                                    <td class="px-6 py-4">{{ job.L1Count }}</td>
+                                    <td class="px-6 py-4">{{ job.L2Count }}</td>
+                                    <td class="px-6 py-4">{{ job.L3Count }}</td>
+                                    <td class="px-6 py-4">{{ job.L4Count }}</td>
+                                    <td class="px-6 py-4">
+                                        <button @click="viewJob(job)" class="text-blue-600 hover:text-blue-800 mr-2">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button @click="closeJob(job)" class="text-red-600 hover:text-red-800">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Team Lead Dashboard -->
+                <div v-if="currentUser.role === 'Team Lead'" class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-800">My Job Requests</h2>
+                        <button @click="showNewJobModal = true" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                            New Job Request
+                        </button>
+                    </div>
+                    <!-- Job Requests Table -->
+                    <div class="bg-white rounded-lg shadow overflow-x-auto">
+                        <table class="min-w-full table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr v-for="request in jobRequests" :key="request.id">
+                                    <td class="px-6 py-4">{{ request.title }}</td>
+                                    <td class="px-6 py-4">
+                                        <span :class="getStatusClass(request.status)">
+                                            {{ request.status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">{{ request.createdDate }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CEO Dashboard -->
+                <div v-if="currentUser.role === 'CEO'" class="space-y-6">
+                    <h2 class="text-2xl font-bold text-gray-800">All Recruitment Status</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="text-xl font-bold text-gray-800">{{ statistics.totalJobs }}</div>
+                            <div class="text-sm text-gray-500">Total Job Descriptions</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="text-xl font-bold text-blue-600">{{ statistics.activeJobs }}</div>
+                            <div class="text-sm text-gray-500">Active Jobs</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="text-xl font-bold text-green-600">{{ statistics.completedHires }}</div>
+                            <div class="text-sm text-gray-500">Completed Hires</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="text-xl font-bold text-orange-600">{{ statistics.pendingApprovals }}</div>
+                            <div class="text-sm text-gray-500">Pending Approvals</div>
+                        </div>
+                    </div>
+                    <!-- Pending Approvals Table -->
+                    <div class="bg-white rounded-lg shadow overflow-x-auto">
+                        <table class="min-w-full table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr v-for="candidate in pendingApprovals" :key="candidate.id">
+                                    <td class="px-6 py-4">{{ candidate.name }}</td>
+                                    <td class="px-6 py-4">{{ candidate.position }}</td>
+                                    <td class="px-6 py-4">L4 Pending</td>
+                                    <td class="px-6 py-4">
+                                        <button @click="approveCandidate(candidate)" class="text-green-600 hover:text-green-800 mr-2">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+                                        <button @click="rejectCandidate(candidate)" class="text-red-600 hover:text-red-800">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Candidate Modal -->
+            <div v-if="showNewCandidateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+                <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+                    <h2 class="text-xl font-bold mb-4">Add New Candidate</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Name</label>
+                            <input type="text" v-model="newCandidate.name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Position</label>
+                            <select v-model="newCandidate.position" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                                <option v-for="job in jobs" :key="job.id" :value="job.id">{{ job.title }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Phase</label>
+                            <select v-model="newCandidate.phase" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                                <option value="L0">L0</option>
+                                <option value="L1">L1</option>
+                            </select>
+                        </div>
+                        <div class="flex justify-end space-x-2">
+                            <button @click="showNewCandidateModal = false" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+                                Cancel
+                            </button>
+                            <button @click="addCandidate" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Job Modal -->
+            <div v-if="showNewJobModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+                <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+                    <h2 class="text-xl font-bold mb-4">Create Job Request</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Job Title</label>
+                            <input type="text" v-model="newJob.title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea v-model="newJob.description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Required Positions</label>
+                            <input type="number" v-model="newJob.positions" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                        </div>
+                        <div class="flex justify-end space-x-2">
+                            <button @click="showNewJobModal = false" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+                                Cancel
+                            </button>
+                            <button @click="createJob" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                Create
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive } = Vue
+
+        createApp({
+            setup() {
+                const isLoggedIn = ref(false)
+                const currentUser = reactive({
+                    role: '',
+                    email: ''
+                })
+                const loginForm = reactive({
+                    email: '',
+                    password: ''
+                })
+                const showNewCandidateModal = ref(false)
+                const showNewJobModal = ref(false)
+                const newCandidate = reactive({
+                    name: '',
+                    position: '',
+                    phase: 'L0'
+                })
+                const newJob = reactive({
+                    title: '',
+                    description: '',
+                    positions: 1
+                })
+
+                // Mock data
+                const jobs = ref([
+                    { id: 1, title: 'Senior Developer', L0Count: 5, L1Count: 3, L2Count: 2, L3Count: 1, L4Count: 0 },
+                    { id: 2, title: 'Product Manager', L0Count: 3, L1Count: 2, L2Count: 1, L3Count: 0, L4Count: 0 }
+                ])
+
+                const jobRequests = ref([
+                    { id: 1, title: 'Frontend Developer', status: 'Active', createdDate: '2023-11-01' },
+                    { id: 2, title: 'Backend Developer', status: 'Closed', createdDate: '2023-10-15' }
+                ])
+
+                const statistics = reactive({
+                    totalJobs: 10,
+                    activeJobs: 5,
+                    completedHires: 15,
+                    pendingApprovals: 3
+                })
+
+                const pendingApprovals = ref([
+                    { id: 1, name: 'John Doe', position: 'Senior Developer' },
+                    { id: 2, name: 'Jane Smith', position: 'Product Manager' }
+                ])
+
+                // Methods
+                const login = () => {
+                    // Mock login logic
+                    if (loginForm.email.includes('hr')) {
+                        currentUser.role = 'HR'
+                    } else if (loginForm.email.includes('ceo')) {
+                        currentUser.role = 'CEO'
+                    } else {
+                        currentUser.role = 'Team Lead'
+                    }
+                    currentUser.email = loginForm.email
+                    isLoggedIn.value = true
+                }
+
+                const logout = () => {
+                    isLoggedIn.value = false
+                    currentUser.role = ''
+                    currentUser.email = ''
+                }
+
+                const addCandidate = () => {
+                    // Mock adding candidate
+                    showNewCandidateModal.value = false
+                    // Reset form
+                    Object.assign(newCandidate, {
+                        name: '',
+                        position: '',
+                        phase: 'L0'
+                    })
+                }
+
+                const createJob = () => {
+                    // Mock creating job
+                    jobRequests.value.push({
+                        id: jobRequests.value.length + 1,
+                        title: newJob.title,
+                        status: 'Active',
+                        createdDate: new Date().toISOString().split('T')[0]
+                    })
+                    showNewJobModal.value = false
+                    // Reset form
+                    Object.assign(newJob, {
+                        title: '',
+                        description: '',
+                        positions: 1
+                    })
+                }
+
+                const getStatusClass = (status) => {
+                    return {
+                        'Active': 'text-green-600',
+                        'Closed': 'text-red-600'
+                    }[status] || 'text-gray-600'
+                }
+
+                const approveCandidate = (candidate) => {
+                    pendingApprovals.value = pendingApprovals.value.filter(c => c.id !== candidate.id)
+                    statistics.pendingApprovals--
+                    statistics.completedHires++
+                }
+
+                const rejectCandidate = (candidate) => {
+                    pendingApprovals.value = pendingApprovals.value.filter(c => c.id !== candidate.id)
+                    statistics.pendingApprovals--
+                }
+
+                return {
+                    isLoggedIn,
+                    currentUser,
+                    loginForm,
+                    jobs,
+                    jobRequests,
+                    statistics,
+                    pendingApprovals,
+                    showNewCandidateModal,
+                    showNewJobModal,
+                    newCandidate,
+                    newJob,
+                    login,
+                    logout,
+                    addCandidate,
+                    createJob,
+                    getStatusClass,
+                    approveCandidate,
+                    rejectCandidate
+                }
+            }
+        }).mount('#app')
+    </script>
+
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
